@@ -189,6 +189,48 @@ function Update-PathEnvironment {
 }
 
 # =============================================================================
+# PowerShell Execution Policy
+# =============================================================================
+function Set-SafeExecutionPolicy {
+    Write-Step "Checking PowerShell execution policy..."
+
+    try {
+        $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+        if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+            Write-Info "Current policy: $currentPolicy - Updating to RemoteSigned..."
+            Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+            Write-Success "Execution policy set to RemoteSigned"
+        } else {
+            Write-Success "Execution policy OK ($currentPolicy)"
+        }
+    } catch {
+        Write-Warn "Could not change execution policy: $_"
+        Write-Info "You may need to run: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned"
+    }
+}
+
+# =============================================================================
+# Add npm global to PATH
+# =============================================================================
+function Add-NpmToPath {
+    Write-Step "Checking npm global path..."
+
+    $npmGlobalPath = "$env:APPDATA\npm"
+
+    # Check if already in PATH
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($userPath -notlike "*$npmGlobalPath*") {
+        Write-Info "Adding npm global path to user PATH..."
+        $newPath = "$userPath;$npmGlobalPath"
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+        $env:Path = "$env:Path;$npmGlobalPath"
+        Write-Success "npm global path added to PATH"
+    } else {
+        Write-Success "npm global path already in PATH"
+    }
+}
+
+# =============================================================================
 # Installation Functions
 # =============================================================================
 
@@ -493,9 +535,11 @@ function Main {
         Write-Host ""
 
         # Run installation steps
+        Set-SafeExecutionPolicy
         Install-Winget
         Install-NodeJS
         Test-Npm
+        Add-NpmToPath
         Install-ClaudeCode
         Show-InstallationSummary
 
