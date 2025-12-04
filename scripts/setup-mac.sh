@@ -214,6 +214,77 @@ verify_npm() {
     fi
 }
 
+# =============================================================================
+# PATH Configuration
+# =============================================================================
+
+# Get shell config file
+get_shell_config() {
+    local shell_name=$(basename "$SHELL")
+    case "$shell_name" in
+        zsh)
+            if [ -f "$HOME/.zshrc" ]; then
+                echo "$HOME/.zshrc"
+            else
+                echo "$HOME/.zprofile"
+            fi
+            ;;
+        bash)
+            if [ -f "$HOME/.bashrc" ]; then
+                echo "$HOME/.bashrc"
+            else
+                echo "$HOME/.bash_profile"
+            fi
+            ;;
+        *)
+            echo "$HOME/.profile"
+            ;;
+    esac
+}
+
+# Add npm global bin to PATH
+setup_npm_path() {
+    log_step "Checking npm global path..."
+
+    # Get npm global bin path
+    local npm_bin
+    if command -v npm &> /dev/null; then
+        npm_bin="$(npm config get prefix)/bin"
+    else
+        # Default paths
+        if [ "$OS_TYPE" == "macos" ]; then
+            npm_bin="/usr/local/bin"
+        else
+            npm_bin="$HOME/.npm-global/bin"
+        fi
+    fi
+
+    # Check if already in PATH
+    if echo "$PATH" | grep -q "$npm_bin"; then
+        log_success "npm global path already in PATH"
+        return 0
+    fi
+
+    log_info "Adding npm global path to PATH..."
+
+    # Add to current session
+    export PATH="$npm_bin:$PATH"
+
+    # Add to shell config for persistence
+    local shell_config=$(get_shell_config)
+
+    if [ -f "$shell_config" ]; then
+        if ! grep -q "npm.*bin" "$shell_config" 2>/dev/null; then
+            echo '' >> "$shell_config"
+            echo '# npm global bin' >> "$shell_config"
+            echo "export PATH=\"$npm_bin:\$PATH\"" >> "$shell_config"
+            log_success "Added npm path to $shell_config"
+        fi
+    fi
+
+    log_success "npm global path configured"
+}
+
 # Install Claude Code
 install_claude_code() {
     log_step "Checking Claude Code..."
@@ -350,6 +421,7 @@ main() {
     install_homebrew
     install_node
     verify_npm
+    setup_npm_path
     install_claude_code
     verify_installation
 }

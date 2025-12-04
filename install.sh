@@ -240,6 +240,53 @@ run_embedded_setup_mac() {
     }
 
     # -------------------------------------------------------------------------
+    # 3.5. PATH Configuration
+    # -------------------------------------------------------------------------
+    setup_npm_path() {
+        log_step "Checking npm global path..."
+
+        # Get npm global bin path
+        local npm_bin
+        if command -v npm &> /dev/null; then
+            npm_bin="$(npm config get prefix)/bin"
+        else
+            npm_bin="/usr/local/bin"
+        fi
+
+        # Check if already in PATH
+        if echo "$PATH" | grep -q "$npm_bin"; then
+            log_success "npm global path already in PATH"
+            return 0
+        fi
+
+        log_info "Adding npm global path to PATH..."
+
+        # Add to current session
+        export PATH="$npm_bin:$PATH"
+
+        # Determine shell config file
+        local shell_config
+        local shell_name=$(basename "$SHELL")
+        case "$shell_name" in
+            zsh)  shell_config="$HOME/.zshrc" ;;
+            bash) shell_config="$HOME/.bashrc" ;;
+            *)    shell_config="$HOME/.profile" ;;
+        esac
+
+        # Add to shell config for persistence
+        if [ -f "$shell_config" ] || [ "$shell_name" = "zsh" ] || [ "$shell_name" = "bash" ]; then
+            if ! grep -q "npm.*bin" "$shell_config" 2>/dev/null; then
+                echo '' >> "$shell_config"
+                echo '# npm global bin' >> "$shell_config"
+                echo "export PATH=\"$npm_bin:\$PATH\"" >> "$shell_config"
+                log_success "Added npm path to $shell_config"
+            fi
+        fi
+
+        log_success "npm global path configured"
+    }
+
+    # -------------------------------------------------------------------------
     # 4. Claude Code Installation
     # -------------------------------------------------------------------------
     install_claude_code() {
@@ -291,6 +338,7 @@ run_embedded_setup_mac() {
     install_homebrew
     install_node
     verify_npm
+    setup_npm_path
     install_claude_code
     verify_installation
 }
