@@ -9,16 +9,18 @@
 
 ## Quick Start
 
+다운로드한 폴더에서 아래 명령어를 실행하세요.
+
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/{user}/cc-bootstrap/main/install.sh | bash
+./install.sh
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/{user}/cc-bootstrap/main/scripts/setup-win.ps1 | iex
+.\scripts\setup-win.ps1
 ```
 
 ## Features
