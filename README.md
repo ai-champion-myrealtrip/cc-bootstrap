@@ -17,10 +17,10 @@
 ./install.sh
 ```
 
-### Windows (PowerShell)
+### Windows (PowerShell 관리자 권한으로 실행)
 
 ```powershell
-.\scripts\setup-win.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-win.ps1
 ```
 
 ## Features
@@ -146,6 +146,14 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Intel
 eval "$(/usr/local/bin/brew shellenv)"
+```
+
+### Windows: "스크립트를 실행할 수 없습니다" / "디지털 서명되지 않았습니다"
+
+PowerShell 실행 정책 때문입니다. 다음 명령어로 실행하세요:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-win.ps1
 ```
 
 ### Windows: "winget is not recognized"
