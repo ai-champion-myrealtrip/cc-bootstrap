@@ -169,7 +169,11 @@ function Test-ClaudeInstalled {
 
 function Get-NodeVersion {
     try {
-        return (node -v 2>$null)
+        $result = & node -v 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            return $result
+        }
+        return $null
     } catch {
         return $null
     }
@@ -311,8 +315,12 @@ function Test-Npm {
     Write-Step "Checking npm..."
 
     if (Test-NpmInstalled) {
-        $version = npm -v 2>$null
-        Write-Success "npm $version available"
+        try {
+            $version = & npm -v 2>&1
+            Write-Success "npm $version available"
+        } catch {
+            Write-Success "npm available"
+        }
     } else {
         Write-Err "npm not found. This should be included with Node.js."
         Write-Info "Try reinstalling Node.js or install npm manually."
@@ -325,12 +333,16 @@ function Install-ClaudeCode {
     Write-Step "Checking Claude Code..."
 
     if (Test-ClaudeInstalled) {
-        $version = claude --version 2>$null
+        try {
+            $version = & claude --version 2>&1
+        } catch {
+            $version = "unknown"
+        }
         Write-Success "Claude Code already installed ($version)"
 
         Write-Info "Checking for updates..."
         try {
-            npm update -g @anthropic-ai/claude-code 2>$null
+            & npm update -g @anthropic-ai/claude-code 2>&1 | Out-Null
             Write-Info "Update check complete"
         } catch {
             # Ignore update errors
@@ -341,22 +353,30 @@ function Install-ClaudeCode {
     Write-Info "Installing Claude Code..."
 
     try {
-        npm install -g @anthropic-ai/claude-code
+        & npm install -g @anthropic-ai/claude-code
 
         # Refresh PATH
         Update-PathEnvironment
 
         if (Test-ClaudeInstalled) {
-            $version = claude --version 2>$null
+            try {
+                $version = & claude --version 2>&1
+            } catch {
+                $version = "installed"
+            }
             Write-Success "Claude Code installed successfully ($version)"
         } else {
             Write-Warn "Claude Code installed but not in PATH"
             Write-Info "You may need to restart your terminal"
 
             # Show npm global path
-            $npmPrefix = npm config get prefix 2>$null
-            if ($npmPrefix) {
-                Write-Info "npm global bin: $npmPrefix"
+            try {
+                $npmPrefix = & npm config get prefix 2>&1
+                if ($npmPrefix) {
+                    Write-Info "npm global bin: $npmPrefix"
+                }
+            } catch {
+                # Ignore
             }
         }
     } catch {
@@ -389,7 +409,11 @@ function Show-InstallationSummary {
 
     # npm
     if (Test-NpmInstalled) {
-        $npmVer = npm -v 2>$null
+        try {
+            $npmVer = & npm -v 2>&1
+        } catch {
+            $npmVer = "installed"
+        }
         Write-Host "  - npm:         " -NoNewline
         Write-ColorOutput $npmVer -ForegroundColor Green
     } else {
@@ -399,7 +423,11 @@ function Show-InstallationSummary {
 
     # Claude Code
     if (Test-ClaudeInstalled) {
-        $claudeVer = claude --version 2>$null
+        try {
+            $claudeVer = & claude --version 2>&1
+        } catch {
+            $claudeVer = "installed"
+        }
         if (-not $claudeVer) { $claudeVer = "installed" }
         Write-Host "  - Claude Code: " -NoNewline
         Write-ColorOutput $claudeVer -ForegroundColor Green
